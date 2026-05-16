@@ -1,8 +1,9 @@
 # Synology NAS Docker 셋업 가이드
 
-회사 Synology NAS에 MariaDB + Backend API를 띄우는 단계별 가이드.
+회사 Synology NAS에 Backend API를 띄우는 단계별 가이드.
+**DB는 DSM `MariaDB 10` 패키지를 그대로 사용**하고, Backend 컨테이너에서 호스트 MariaDB로 연결합니다.
 
-> 기준: DSM 7.2 이상, Container Manager 패키지 사용. (DSM 7.1 이하는 Docker 패키지로 거의 동일)
+> 기준: DSM 7.2 이상, Container Manager + MariaDB 10 + phpMyAdmin 패키지.
 
 ---
 
@@ -19,7 +20,13 @@
 1. DSM → **패키지 센터** → "Container Manager" 검색 → 설치
    - DSM 7.1 이하: "Docker" 패키지
 
-### 1.3 작업 폴더 생성
+### 1.3 MariaDB 10 + phpMyAdmin 설치/설정
+1. DSM → **패키지 센터** → "MariaDB 10" 설치
+2. MariaDB 10 패키지 → **TCP/IP 연결 활성화** 체크 + 포트 확인 (기본 3307 또는 3306)
+3. 루트 비밀번호 설정
+4. DSM → **패키지 센터** → "phpMyAdmin" 설치 (DB GUI용)
+
+### 1.4 작업 폴더 생성
 1. DSM → **File Station** → `docker` 공유 폴더가 없으면 생성 (Container Manager 설치 시 자동 생성됨)
 2. SSH로 접속해서 프로젝트 폴더 생성:
    ```bash
@@ -49,29 +56,45 @@ git clone https://github.com/<your-org>/mob-viewer.git .
 
 ---
 
-## 3. 환경 변수 설정
+## 3. mob-viewer DB / 사용자 생성 (phpMyAdmin)
+
+DSM → **phpMyAdmin** 접속 → root 로그인 → 상단 **SQL** 탭 → 아래 붙여넣고 실행:
+
+```sql
+CREATE DATABASE mobviewer
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'mobviewer'@'%' IDENTIFIED BY '<강력한_앱_비밀번호>';
+GRANT ALL PRIVILEGES ON mobviewer.* TO 'mobviewer'@'%';
+FLUSH PRIVILEGES;
+```
+
+`<강력한_앱_비밀번호>`는 `openssl rand -base64 24` 등으로 생성. 다음 단계 `.env`의 `DATABASE_URL`과 반드시 동일하게 사용.
+
+> 호스트가 `%`인 이유: Backend 컨테이너에서 Docker 내부망 IP로 접속하므로 `localhost`만 허용하면 거부됨.
+
+---
+
+## 4. 환경 변수 설정
 
 ```bash
 cd /volume1/docker/mob-viewer
 cp .env.example .env
+chmod 600 .env
 nano .env
 ```
 
-`.env` 예시:
+`.env` 작성 예시:
 ```env
-# MariaDB
-MARIADB_ROOT_PASSWORD=강력한_루트_비밀번호
-MARIADB_DATABASE=mobviewer
-MARIADB_USER=mobviewer
-MARIADB_PASSWORD=강력한_앱_비밀번호
-
-# Backend
 NODE_ENV=production
 BACKEND_PORT=3000
-DATABASE_URL=mysql://mobviewer:강력한_앱_비밀번호@mariadb:3306/mobviewer
 
-# JWT (앱 인증용, 추후 사용)
-JWT_SECRET=랜덤한_긴_문자열_여기에
+# host.docker.internal = NAS 호스트 (Backend 컨테이너 → DSM MariaDB)
+# 포트는 DSM MariaDB 10 설정에서 확인 (기본 3307, 사용 NAS에 따라 3306일 수 있음)
+DATABASE_URL=mysql://mobviewer:<강력한_앱_비밀번호>@host.docker.internal:3306/mobviewer
+
+JWT_SECRET=<openssl rand -hex 32 결과>
 ```
 
 **`.env` 파일은 절대 Git에 커밋하지 마세요.** (`.gitignore`에 이미 포함됨)
