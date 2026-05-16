@@ -56,7 +56,7 @@ class _HealthPageState extends State<HealthPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Backend: ${ApiConfig.baseUrl}'),
+            const Text('Backend: ${ApiConfig.baseUrl}'),
             const SizedBox(height: 16),
             Text('Status: $_status'),
             const SizedBox(height: 16),
