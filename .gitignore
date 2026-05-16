@@ -1,0 +1,43 @@
+# 환경 변수
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+dist/
+coverage/
+*.log
+npm-debug.log*
+
+# Prisma
+backend/prisma/migrations/dev/
+*.db
+
+# Flutter / Dart
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/release/
+mobile/android/app/build/
+
+# Synology 배포 시 생성되는 데이터
+data/
+backups/
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Claude
+.claude/settings.local.json
